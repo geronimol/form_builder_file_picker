@@ -63,6 +63,7 @@ class FormBuilderFilePicker
   /// ```
 
   final bool enableImageCropper;
+  final Future<Uint8List> Function(Uint8List)? onImageLoaded;
 
   /// If set to true, a thumbnail of image files will be shown; else the default
   /// icon will be displayed depending on file type
@@ -127,6 +128,7 @@ class FormBuilderFilePicker
       this.allowMultiple = false,
       this.previewImages = true,
       this.enableImageCropper = false,
+      this.onImageLoaded,
       this.typeSelectors = const [
         TypeSelector(type: FileType.any, selector: Icon(Icons.add_circle))
       ],
@@ -290,6 +292,19 @@ class _FormBuilderFilePickerState extends FormBuilderFieldDecorationState<
     if (!mounted) return;
 
     if (resultList != null) {
+      if(widget.onImageLoaded != null && fileType == FileType.image) {
+        final files = resultList.files;
+        for(final (index, file) in files.indexed) {
+          final fileBytes = await widget.onImageLoaded!(file.bytes!);
+          final platformFile = PlatformFile(
+            // path: filePath,
+            name: file.name,
+            size: fileBytes.lengthInBytes,
+            bytes: fileBytes,
+          );
+          resultList.files[index] = platformFile;
+        }
+      }
       setState(() => _files = [..._files, ...resultList!.files]);
       // TODO: Pick only remaining number
       field.didChange(_files);
